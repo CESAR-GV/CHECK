@@ -10,23 +10,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
-            body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-            .print\\:hidden {
-                display: none !important;
-            }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .print\:hidden { display: none !important; }
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Ícones SVG simplificados
+        // Ícones
         const Check = ({size = 24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>;
         const X = ({size = 24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
         const Printer = ({size = 24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
@@ -43,9 +37,8 @@
         const Download = ({size = 24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
         const Eye = ({size = 24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
-        // Simulação do window.storage (você vai usar o real do Claude)
+        // Storage
         window.storage = {
-            data: {},
             async get(key) {
                 const value = localStorage.getItem(key);
                 return value ? { key, value } : null;
@@ -76,23 +69,10 @@
             const [viewingChecklist, setViewingChecklist] = useState(null);
             
             const [reportFilters, setReportFilters] = useState({
-                startDate: '',
-                endDate: '',
-                placa: '',
-                motorista: '',
-                categoria: '',
-                status: 'todos'
+                startDate: '', endDate: '', placa: '', motorista: '', categoria: '', status: 'todos'
             });
 
-            const [categories, setCategories] = useState([
-                'MECÂNICA',
-                'ELÉTRICA',
-                'PNEUS',
-                'FLUIDOS',
-                'SEGURANÇA',
-                'DOCUMENTAÇÃO'
-            ]);
-            
+            const [categories, setCategories] = useState(['MECÂNICA', 'ELÉTRICA', 'PNEUS', 'FLUIDOS', 'SEGURANÇA', 'DOCUMENTAÇÃO']);
             const [newCategory, setNewCategory] = useState('');
             const [vehicles, setVehicles] = useState([]);
             const [newVehicle, setNewVehicle] = useState({ placa: '', motorista: '' });
@@ -100,8 +80,7 @@
             
             const [formData, setFormData] = useState({
                 data: new Date().toISOString().split('T')[0],
-                placa: '',
-                condutor: '',
+                placa: '', condutor: '',
                 items: [
                     { numero: 1, categoria: 'MECÂNICA', descricao: 'SETOR DE DIREÇÃO VAZANDO MUITO', status: null },
                     { numero: 2, categoria: 'MECÂNICA', descricao: 'OLHAR OS BEXIGÃO DESCENDO SOZINHO', status: null },
@@ -117,26 +96,18 @@
                 observacoes: ''
             });
 
-            useEffect(() => {
-                loadAllData();
-            }, []);
+            useEffect(() => { loadAllData(); }, []);
 
             const loadAllData = async () => {
                 setLoading(true);
                 try {
                     const categoriesData = await window.storage.get('checklist-categories');
-                    if (categoriesData) {
-                        setCategories(JSON.parse(categoriesData.value));
-                    }
-
+                    if (categoriesData) setCategories(JSON.parse(categoriesData.value));
                     const vehiclesData = await window.storage.get('checklist-vehicles');
-                    if (vehiclesData) {
-                        setVehicles(JSON.parse(vehiclesData.value));
-                    }
-
+                    if (vehiclesData) setVehicles(JSON.parse(vehiclesData.value));
                     await loadHistory();
                 } catch (error) {
-                    console.error('Erro ao carregar dados:', error);
+                    console.error('Erro:', error);
                 } finally {
                     setLoading(false);
                 }
@@ -147,62 +118,40 @@
                     const keys = await window.storage.list('checklist-history:');
                     if (keys && keys.keys) {
                         const historyPromises = keys.keys.map(async (key) => {
-                            try {
-                                const data = await window.storage.get(key);
-                                return data ? JSON.parse(data.value) : null;
-                            } catch (error) {
-                                return null;
-                            }
+                            const data = await window.storage.get(key);
+                            return data ? JSON.parse(data.value) : null;
                         });
-                        
                         const historyData = await Promise.all(historyPromises);
-                        const validHistory = historyData.filter(h => h !== null);
-                        setChecklistHistory(validHistory.sort((a, b) => new Date(b.data) - new Date(a.data)));
+                        setChecklistHistory(historyData.filter(h => h).sort((a, b) => new Date(b.data) - new Date(a.data)));
                     }
                 } catch (error) {
-                    console.error('Erro ao carregar histórico:', error);
+                    console.error('Erro:', error);
                 }
             };
 
             const saveCategories = async (newCategories) => {
                 setCategories(newCategories);
-                try {
-                    await window.storage.set('checklist-categories', JSON.stringify(newCategories));
-                } catch (error) {
-                    alert('Erro ao salvar categorias');
-                }
+                await window.storage.set('checklist-categories', JSON.stringify(newCategories));
             };
 
             const saveVehicles = async (newVehicles) => {
                 setVehicles(newVehicles);
-                try {
-                    await window.storage.set('checklist-vehicles', JSON.stringify(newVehicles));
-                } catch (error) {
-                    alert('Erro ao salvar veículos');
-                }
+                await window.storage.set('checklist-vehicles', JSON.stringify(newVehicles));
             };
 
             const saveChecklist = async () => {
                 if (!formData.placa || !formData.condutor) {
-                    alert('Preencha a placa e o condutor antes de salvar!');
+                    alert('Preencha placa e condutor!');
                     return;
                 }
-
                 setSaving(true);
                 try {
                     const checklistId = `checklist-history:${Date.now()}`;
-                    const checklistData = {
-                        id: checklistId,
-                        ...formData,
-                        savedAt: new Date().toISOString()
-                    };
-
-                    await window.storage.set(checklistId, JSON.stringify(checklistData));
+                    await window.storage.set(checklistId, JSON.stringify({ 
+                        id: checklistId, ...formData, savedAt: new Date().toISOString() 
+                    }));
                     await loadHistory();
-                    
-                    alert('✅ Checklist salvo com sucesso!');
-                } catch (error) {
-                    alert('Erro ao salvar checklist');
+                    alert('✅ Checklist salvo!');
                 } finally {
                     setSaving(false);
                 }
@@ -215,106 +164,69 @@
             };
 
             const addNewItem = () => {
-                const newNumber = formData.items.length + 1;
                 setFormData({
                     ...formData,
-                    items: [...formData.items, { numero: newNumber, categoria: '', descricao: '', status: null }]
+                    items: [...formData.items, { 
+                        numero: formData.items.length + 1, categoria: '', descricao: '', status: null 
+                    }]
                 });
             };
 
             const removeItem = (index) => {
-                const newItems = formData.items.filter((_, i) => i !== index);
-                const renumberedItems = newItems.map((item, i) => ({ ...item, numero: i + 1 }));
-                setFormData({ ...formData, items: renumberedItems });
-            };
-
-            const handlePrint = () => {
-                window.print();
-            };
-
-            const getCheckedCount = () => {
-                return formData.items.filter(item => item.status !== null).length;
+                const newItems = formData.items.filter((_, i) => i !== index).map((item, i) => ({ 
+                    ...item, numero: i + 1 
+                }));
+                setFormData({ ...formData, items: newItems });
             };
 
             const addCategory = () => {
                 if (newCategory.trim()) {
-                    const updated = [...categories, newCategory.toUpperCase().trim()];
-                    saveCategories(updated);
+                    saveCategories([...categories, newCategory.toUpperCase().trim()]);
                     setNewCategory('');
                 }
             };
 
             const removeCategory = (index) => {
-                const updated = categories.filter((_, i) => i !== index);
-                saveCategories(updated);
+                saveCategories(categories.filter((_, i) => i !== index));
             };
 
             const addVehicle = () => {
                 if (newVehicle.placa.trim() && newVehicle.motorista.trim()) {
-                    const vehicle = {
+                    saveVehicles([...vehicles, {
                         id: Date.now(),
                         placa: newVehicle.placa.toUpperCase().trim(),
                         motorista: newVehicle.motorista.toUpperCase().trim()
-                    };
-                    saveVehicles([...vehicles, vehicle]);
+                    }]);
                     setNewVehicle({ placa: '', motorista: '' });
                     setShowVehicleForm(false);
                 }
             };
 
             const updateVehicle = () => {
-                if (editingVehicle && editingVehicle.placa.trim() && editingVehicle.motorista.trim()) {
-                    const updated = vehicles.map(v => 
+                if (editingVehicle?.placa.trim() && editingVehicle?.motorista.trim()) {
+                    saveVehicles(vehicles.map(v => 
                         v.id === editingVehicle.id 
                             ? { ...v, placa: editingVehicle.placa.toUpperCase().trim(), motorista: editingVehicle.motorista.toUpperCase().trim() }
                             : v
-                    );
-                    saveVehicles(updated);
+                    ));
                     setEditingVehicle(null);
                 }
             };
 
-            const removeVehicle = (id) => {
-                const updated = vehicles.filter(v => v.id !== id);
-                saveVehicles(updated);
-            };
+            const removeVehicle = (id) => saveVehicles(vehicles.filter(v => v.id !== id));
+            const selectVehicle = (v) => setFormData({ ...formData, placa: v.placa, condutor: v.motorista });
 
-            const selectVehicle = (vehicle) => {
-                setFormData({
-                    ...formData,
-                    placa: vehicle.placa,
-                    condutor: vehicle.motorista
-                });
-            };
-
-            const loadChecklistFromHistory = (checklist) => {
-                setFormData({
-                    data: new Date().toISOString().split('T')[0],
-                    placa: checklist.placa,
-                    condutor: checklist.condutor,
-                    items: checklist.items.map(item => ({ ...item, status: null })),
-                    observacoes: ''
-                });
-                setShowHistory(false);
-                setShowReports(false);
-            };
-
-            const deleteChecklistFromHistory = async (checklistId) => {
-                if (confirm('Tem certeza que deseja excluir este checklist?')) {
-                    try {
-                        await window.storage.delete(checklistId);
-                        await loadHistory();
-                    } catch (error) {
-                        alert('Erro ao excluir checklist');
-                    }
+            const deleteChecklistFromHistory = async (id) => {
+                if (confirm('Excluir?')) {
+                    await window.storage.delete(id);
+                    await loadHistory();
                 }
             };
 
             const newChecklist = () => {
                 setFormData({
                     data: new Date().toISOString().split('T')[0],
-                    placa: '',
-                    condutor: '',
+                    placa: '', condutor: '',
                     items: [
                         { numero: 1, categoria: 'MECÂNICA', descricao: 'SETOR DE DIREÇÃO VAZANDO MUITO', status: null },
                         { numero: 2, categoria: 'MECÂNICA', descricao: 'OLHAR OS BEXIGÃO DESCENDO SOZINHO', status: null },
@@ -344,10 +256,7 @@
                     if (reportFilters.endDate && new Date(item.data) > new Date(reportFilters.endDate)) return false;
                     if (reportFilters.placa && !item.placa.toLowerCase().includes(reportFilters.placa.toLowerCase())) return false;
                     if (reportFilters.motorista && !item.condutor.toLowerCase().includes(reportFilters.motorista.toLowerCase())) return false;
-                    if (reportFilters.categoria) {
-                        const hasCategory = item.items.some(i => i.categoria === reportFilters.categoria);
-                        if (!hasCategory) return false;
-                    }
+                    if (reportFilters.categoria && !item.items.some(i => i.categoria === reportFilters.categoria)) return false;
                     if (reportFilters.status !== 'todos') {
                         const hasProblems = item.items.some(i => i.status === 'problema');
                         const allChecked = item.items.every(i => i.status !== null);
@@ -359,27 +268,19 @@
                 });
             };
 
-            const printReport = () => {
-                window.print();
-            };
-
             const exportReportCSV = () => {
                 const filtered = getFilteredChecklists();
-                let csv = 'Data,Placa,Motorista,Total Itens,Itens OK,Problemas,Status\n';
-                
+                let csv = 'Data,Placa,Motorista,Total,OK,Problemas,Status\n';
                 filtered.forEach(item => {
-                    const okCount = item.items.filter(i => i.status === 'ok').length;
-                    const problemCount = item.items.filter(i => i.status === 'problema').length;
-                    const status = problemCount > 0 ? 'COM PROBLEMAS' : 'OK';
-                    
-                    csv += `${new Date(item.data).toLocaleDateString('pt-BR')},${item.placa},${item.condutor},${item.items.length},${okCount},${problemCount},${status}\n`;
+                    const ok = item.items.filter(i => i.status === 'ok').length;
+                    const prob = item.items.filter(i => i.status === 'problema').length;
+                    csv += `${new Date(item.data).toLocaleDateString('pt-BR')},${item.placa},${item.condutor},${item.items.length},${ok},${prob},${prob > 0 ? 'COM PROBLEMAS' : 'OK'}\n`;
                 });
-
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `relatorio-checklist-${new Date().toISOString().split('T')[0]}.csv`;
+                a.download = `relatorio-${new Date().toISOString().split('T')[0]}.csv`;
                 a.click();
             };
 
@@ -398,44 +299,126 @@
                     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600 font-semibold">Carregando dados...</p>
+                            <p className="text-gray-600 font-semibold">Carregando...</p>
                         </div>
                     </div>
                 );
             }
 
-            // Continue com o resto do código do componente...
-            // (A interface completa do checklist aqui)
-            
-            return (
-                <div className="min-h-screen bg-gray-100 p-4">
-                    <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="bg-white text-blue-800 w-16 h-16 flex items-center justify-center rounded-lg font-bold text-2xl">
-                                        GV
+            if (viewingChecklist) {
+                return (
+                    <div className="min-h-screen bg-gray-100 p-4">
+                        <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg">
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="bg-white text-blue-800 w-16 h-16 flex items-center justify-center rounded-lg font-bold text-2xl">GV</div>
+                                        <div>
+                                            <h1 className="text-2xl font-bold">GRUPO VENETTO</h1>
+                                            <p className="text-blue-200 text-sm">Visualização de Checklist</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setViewingChecklist(null)} className="bg-white text-blue-800 px-4 py-2 rounded-lg">Voltar</button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 bg-white text-gray-800 p-4 rounded-lg">
+                                    <div>
+                                        <label className="block text-sm text-gray-600 mb-1">DATA</label>
+                                        <p className="font-bold">{new Date(viewingChecklist.data).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                     <div>
-                                        <h1 className="text-2xl font-bold">GRUPO VENETTO</h1>
-                                        <p className="text-blue-200 text-sm">Checklist de Inspeção Veicular</p>
+                                        <label className="block text-sm text-gray-600 mb-1">PLACA</label>
+                                        <p className="font-bold">{viewingChecklist.placa}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-600 mb-1">CONDUTOR</label>
+                                        <p className="font-bold">{viewingChecklist.condutor}</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div className="p-6">
-                            <p className="text-center text-gray-600">Sistema de Checklist em funcionamento! 🚛</p>
-                            <p className="text-center text-sm text-gray-500 mt-2">
-                                Cole o código completo do artifact aqui para ter todas as funcionalidades
-                            </p>
+                            <div className="p-6">
+                                <div className="space-y-2">
+                                    {viewingChecklist.items.map((item, i) => (
+                                        <div key={i} className="border rounded-lg p-4">
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-bold text-lg text-blue-600 w-8">{item.numero}</span>
+                                                <span className="font-bold text-sm bg-gray-100 px-3 py-1 rounded">{item.categoria}</span>
+                                                <span className="flex-1">{item.descricao}</span>
+                                                <span className={`px-4 py-2 rounded-lg font-semibold ${item.status === 'ok' ? 'bg-green-500 text-white' : item.status === 'problema' ? 'bg-red-500 text-white' : 'bg-gray-300'}`}>
+                                                    {item.status === 'ok' ? '✓ OK' : item.status === 'problema' ? '✗ PROBLEMA' : 'NÃO VERIFICADO'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {viewingChecklist.observacoes && (
+                                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <h3 className="font-bold mb-2">OBSERVAÇÕES:</h3>
+                                        <p>{viewingChecklist.observacoes}</p>
+                                    </div>
+                                )}
+                                <button onClick={() => window.print()} className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+                                    <Printer size={20} />
+                                    Imprimir
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            );
-        }
+                );
+            }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
+            if (showReports) {
+                const filtered = getFilteredChecklists();
+                const stats = getReportStats();
+                return (
+                    <div className="min-h-screen bg-gray-100 p-4">
+                        <div className="max-w-6xl mx-auto bg-white shadow-lg rounded-lg">
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="bg-white text-blue-800 w-16 h-16 flex items-center justify-center rounded-lg font-bold text-2xl">GV</div>
+                                        <div>
+                                            <h1 className="text-2xl font-bold">RELATÓRIOS DE CHECKLISTS</h1>
+                                            <p className="text-blue-200 text-sm">Análise e estatísticas</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowReports(false)} className="bg-white text-blue-800 px-4 py-2 rounded-lg">Voltar</button>
+                                </div>
+                            </div>
+                            <div className="p-6 bg-gray-50 border-b">
+                                <h3 className="font-bold mb-4 flex items-center gap-2"><Filter size={20} />FILTROS</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Data Inicial</label>
+                                        <input type="date" value={reportFilters.startDate} onChange={(e) => setReportFilters({...reportFilters, startDate: e.target.value})} className="w-full px-3 py-2 border rounded" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Data Final</label>
+                                        <input type="date" value={reportFilters.endDate} onChange={(e) => setReportFilters({...reportFilters, endDate: e.target.value})} className="w-full px-3 py-2 border rounded" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Placa</label>
+                                        <input type="text" value={reportFilters.placa} onChange={(e) => setReportFilters({...reportFilters, placa: e.target.value})} placeholder="QBD-1018" className="w-full px-3 py-2 border rounded uppercase" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Motorista</label>
+                                        <input type="text" value={reportFilters.motorista} onChange={(e) => setReportFilters({...reportFilters, motorista: e.target.value})} className="w-full px-3 py-2 border rounded uppercase" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Categoria</label>
+                                        <select value={reportFilters.categoria} onChange={(e) => setReportFilters({...reportFilters, categoria: e.target.value})} className="w-full px-3 py-2 border rounded">
+                                            <option value="">Todas</option>
+                                            {categories.map((cat, i) => <option key={i} value={cat}>{cat}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Status</label>
+                                        <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} className="w-full px-3 py-2 border rounded">
+                                            <option value="todos">Todos</option>
+                                            <option value="ok">Sem Problemas</option>
+                                            <option value="problemas">Com Problemas</option>
+                                            <option value="pendentes">Pendentes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex gap-3">
+                                    <button onClick={() => setReportFilters({startDate:'',endDate:'',placa:'',motorista:'',categoria:'',status:'todos'})} className="bg-gray-500
